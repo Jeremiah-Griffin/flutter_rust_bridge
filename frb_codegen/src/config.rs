@@ -84,6 +84,8 @@ pub struct Opts {
 }
 
 pub fn parse(raw: RawOpts) -> Vec<Opts> {
+
+    println!("{raw:?}");
     // rust input path(s)
     let rust_input_paths = get_valid_canon_paths(&raw.rust_input);
     assert!(
@@ -281,6 +283,20 @@ fn format_fail_to_guess_error(name: &str) -> String {
 }
 
 fn fallback_rust_crate_dir(rust_input_path: &str) -> Result<String> {
+
+    let current_directory = Path::new(rust_input_path)
+        .parent()
+        .ok_or_else(|| anyhow!(""))?
+        .to_path_buf();
+
+    //iterate through all ancestors and check if a Cargo.toml is present
+    match current_directory.ancestors().find(|a| a.join("Cargo.toml").exists()) {
+        Some(p) => Ok(String::from(p.to_str().ok_or_else(|| anyhow!(""))?)),
+        None => Err(anyhow!("look at parent directories but none contains Cargo.toml"))
+    }
+
+    /*
+
     let mut dir_curr = Path::new(rust_input_path)
         .parent()
         .ok_or_else(|| anyhow!(""))?;
@@ -304,7 +320,7 @@ fn fallback_rust_crate_dir(rust_input_path: &str) -> Result<String> {
     }
     Err(anyhow!(
         "look at parent directories but none contains Cargo.toml"
-    ))
+    )) */
 }
 
 fn fallback_c_output_path() -> Result<String> {
