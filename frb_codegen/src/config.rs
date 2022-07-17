@@ -295,32 +295,6 @@ fn fallback_rust_crate_dir(rust_input_path: &str) -> Result<String> {
         None => Err(anyhow!("look at parent directories but none contains Cargo.toml"))
     }
 
-    /*
-
-    let mut dir_curr = Path::new(rust_input_path)
-        .parent()
-        .ok_or_else(|| anyhow!(""))?;
-
-    loop {
-        let path_cargo_toml = dir_curr.join("Cargo.toml");
-
-        if path_cargo_toml.exists() {
-            return Ok(dir_curr
-                .as_os_str()
-                .to_str()
-                .ok_or_else(|| anyhow!(""))?
-                .to_string());
-        }
-
-        if let Some(next_parent) = dir_curr.parent() {
-            dir_curr = next_parent;
-        } else {
-            break;
-        }
-    }
-    Err(anyhow!(
-        "look at parent directories but none contains Cargo.toml"
-    )) */
 }
 
 fn fallback_c_output_path() -> Result<String> {
@@ -343,7 +317,19 @@ fn fallback_rust_output_path(rust_input_path: &str) -> Result<String> {
 }
 
 fn fallback_dart_root(dart_output_path: &str) -> Result<String> {
+
+    let canonical = canon_pathbuf(dart_output_path);
+
+
+    match canonical.ancestors().find(|a| a.join("pubspec.yaml").is_file()){
+        Some(_) => Ok(String::from(canonical.to_str().ok_or_else(|| anyhow!("Non-utf8 path"))?)),
+        None => Err(anyhow!("Root of Dart library could not be inferred from Dart output"))
+    }
+
+    /*
     let mut res = canon_pathbuf(dart_output_path);
+
+
     while res.pop() {
         if res.join("pubspec.yaml").is_file() {
             return res
@@ -355,6 +341,7 @@ fn fallback_dart_root(dart_output_path: &str) -> Result<String> {
     Err(anyhow!(
         "Root of Dart library could not be inferred from Dart output"
     ))
+    */
 }
 
 fn fallback_class_name(rust_crate_dir: &str) -> Result<String> {
@@ -379,10 +366,16 @@ fn canon_path(sub_path: &str) -> String {
 }
 
 fn canon_pathbuf(sub_path: &str) -> PathBuf {
+     env::current_dir()
+        .unwrap_or_else(|_| panic!("fail to parse path: {}", sub_path))
+        .join::<PathBuf>(sub_path.into())
+
+    /*
     let mut path =
         env::current_dir().unwrap_or_else(|_| panic!("fail to parse path: {}", sub_path));
     path.push(sub_path);
     path
+    */
 }
 
 fn path_to_string(path: PathBuf) -> Result<String, OsString> {
